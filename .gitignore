@@ -1,2 +1,17 @@
+# ===== Java / Maven =====
 target/
+*.log
 
+# ===== IntelliJ =====
+.idea/
+*.iml
+out/
+
+# ===== macOS =====
+.DS_Store
+
+# ===== VS Code (just in case) =====
+.vscode/
+
+# ===== Misc =====
+*.class

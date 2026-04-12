@@ -25,11 +25,9 @@ public class BorderCheckTask implements Runnable
 		if (Config.KnockBack() == 0.0)
 			return;
 
-		Player[] players = Bukkit.getServer().getOnlinePlayers();
-
-		for (int i = 0; i < players.length; i++)
+		for (Player player : Bukkit.getServer().getOnlinePlayers())
 		{
-			checkPlayer(players[i], null, false, true);
+			checkPlayer(player, null, false, true);
 		}
 	}
 
@@ -139,7 +137,8 @@ public class BorderCheckTask implements Runnable
 			Config.logWarn("Player position X: " + Config.coord.format(loc.getX()) + " Y: " + Config.coord.format(loc.getY()) + " Z: " + Config.coord.format(loc.getZ()));
 		}
 
-		Location newLoc = border.correctedPosition(loc, Config.ShapeRound(), player.isFlying());
+		boolean preserveVehicleY = player.isInsideVehicle();
+		Location newLoc = border.correctedPosition(loc, Config.ShapeRound(), player.isFlying() || preserveVehicleY, preserveVehicleY);
 
 		// it's remotely possible (such as in the Nether) a suitable location isn't available, in which case...
 		if (newLoc == null)

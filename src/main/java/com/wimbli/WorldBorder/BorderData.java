@@ -208,7 +208,7 @@ public class BorderData
 		return insideBorder(coord.x, coord.z, Config.ShapeRound());
 	}
 
-	public Location correctedPosition(Location loc, boolean round, boolean flying)
+	public Location correctedPosition(Location loc, boolean round, boolean flying, boolean preserveY)
 	{
 		// if this border has a shape override set, use it
 		if (shapeRound != null)
@@ -261,7 +261,9 @@ public class BorderData
 			{
 				xLoc = x - dX * f;
 				zLoc = z - dZ * f;
-			} else {
+			}
+			else
+			{
 				xLoc = x + dX * f;
 				zLoc = z + dZ * f;
 			}
@@ -275,19 +277,32 @@ public class BorderData
 		if (!tChunk.isLoaded())
 			tChunk.load();
 
+		if (preserveY)
+		{
+			double keptY = clampY(loc.getWorld(), yLoc);
+			int keptBlockY = Location.locToBlock(keptY);
+
+			if (isSafeSpot(loc.getWorld(), ixLoc, keptBlockY, izLoc, true))
+				return new Location(loc.getWorld(), Math.floor(xLoc) + 0.5, keptY, Math.floor(zLoc) + 0.5, loc.getYaw(), loc.getPitch());
+		}
+
 		yLoc = getSafeY(loc.getWorld(), ixLoc, Location.locToBlock(yLoc), izLoc, flying);
 		if (yLoc == -1)
 			return null;
 
 		return new Location(loc.getWorld(), Math.floor(xLoc) + 0.5, yLoc, Math.floor(zLoc) + 0.5, loc.getYaw(), loc.getPitch());
 	}
+	public Location correctedPosition(Location loc, boolean round, boolean flying)
+	{
+		return correctedPosition(loc, round, flying, false);
+	}
 	public Location correctedPosition(Location loc, boolean round)
 	{
-		return correctedPosition(loc, round, false);
+		return correctedPosition(loc, round, false, false);
 	}
 	public Location correctedPosition(Location loc)
 	{
-		return correctedPosition(loc, Config.ShapeRound(), false);
+		return correctedPosition(loc, Config.ShapeRound(), false, false);
 	}
 
 	//these material IDs are acceptable for places to teleport player; breathable blocks and water
@@ -316,6 +331,18 @@ public class BorderData
 	}
 
 	private static final int limBot = 1;
+
+	private double clampY(World world, double Y)
+	{
+		final int limTop = (world.getEnvironment() == World.Environment.NETHER) ? 125 : world.getMaxHeight() - 2;
+
+		if (Y > limTop)
+			return (double) limTop;
+		if (Y < limBot)
+			return (double) limBot;
+
+		return Y;
+	}
 
 	// find closest safe Y position from the starting position
 	private double getSafeY(World world, int X, int Y, int Z, boolean flying)
