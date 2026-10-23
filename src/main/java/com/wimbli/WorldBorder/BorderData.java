@@ -16,7 +16,7 @@ public class BorderData
 	private int radiusX = 0;
 	private int radiusZ = 0;
 	private Boolean shapeRound = null;
-	private boolean wrapping = false;
+	private BorderTopology topology = BorderTopology.NORMAL;
 
 	// some extra data kept handy for faster border checks
 	private double maxX;
@@ -31,7 +31,11 @@ public class BorderData
 
 	public BorderData(double x, double z, int radiusX, int radiusZ, Boolean shapeRound, boolean wrap)
 	{
-		setData(x, z, radiusX, radiusZ, shapeRound, wrap);
+		setData(x, z, radiusX, radiusZ, shapeRound, wrap ? BorderTopology.TORUS : BorderTopology.NORMAL);
+	}
+	public BorderData(double x, double z, int radiusX, int radiusZ, Boolean shapeRound, BorderTopology topology)
+	{
+		setData(x, z, radiusX, radiusZ, shapeRound, topology);
 	}
 	public BorderData(double x, double z, int radiusX, int radiusZ)
 	{
@@ -52,10 +56,14 @@ public class BorderData
 
 	public final void setData(double x, double z, int radiusX, int radiusZ, Boolean shapeRound, boolean wrap)
 	{
+		setData(x, z, radiusX, radiusZ, shapeRound, wrap ? BorderTopology.TORUS : BorderTopology.NORMAL);
+	}
+	public final void setData(double x, double z, int radiusX, int radiusZ, Boolean shapeRound, BorderTopology topology)
+	{
 		this.x = x;
 		this.z = z;
 		this.shapeRound = shapeRound;
-		this.wrapping = wrap;
+		this.topology = (topology == null) ? BorderTopology.NORMAL : topology;
 		this.setRadiusX(radiusX);
 		this.setRadiusZ(radiusZ);
 	}
@@ -70,7 +78,7 @@ public class BorderData
 
 	public BorderData copy()
 	{
-		return new BorderData(x, z, radiusX, radiusZ, shapeRound, wrapping);
+		return new BorderData(x, z, radiusX, radiusZ, shapeRound, topology);
 	}
 
 	public double getX()
@@ -93,6 +101,24 @@ public class BorderData
 		this.maxZ = z + radiusZ;
 		this.minZ = z - radiusZ;
 	}
+
+	public double getMinX()
+	{
+		return minX;
+	}
+	public double getMaxX()
+	{
+		return maxX;
+	}
+	public double getMinZ()
+	{
+		return minZ;
+	}
+	public double getMaxZ()
+	{
+		return maxZ;
+	}
+
 	public int getRadiusX()
 	{
 		return radiusX;
@@ -149,18 +175,56 @@ public class BorderData
 
 	public boolean getWrapping()
 	{
-		return wrapping;
+		return topology.isWrapping();
 	}
 	public void setWrapping(boolean wrap)
 	{
-		this.wrapping = wrap;
+		this.topology = wrap ? BorderTopology.TORUS : BorderTopology.NORMAL;
+	}
+	public BorderTopology getTopology()
+	{
+		return topology;
+	}
+	public void setTopology(BorderTopology topology)
+	{
+		this.topology = (topology == null) ? BorderTopology.NORMAL : topology;
+	}
+
+	/**
+	 * Returns true when an out-of-bounds destination crosses only edges that are
+	 * traversable for this topology. Used for pearls, portals, projectiles and
+	 * special launch trajectories so green seams behave as actual seams while
+	 * red edges remain closed.
+	 */
+	public boolean isPassableDestination(double xLoc, double zLoc, boolean round)
+	{
+		if (shapeRound != null)
+			round = shapeRound.booleanValue();
+
+		if (insideBorder(xLoc, zLoc, round))
+			return true;
+
+		// Cylinder/globe are intentionally rectangular-only. If a config is manually
+		// corrupted underneath the command validation, fail closed rather than allowing
+		// a crossing whose visual/coordinate semantics are undefined.
+		if (round)
+			return topology == BorderTopology.TORUS;
+
+		boolean outsideX = xLoc < minX || xLoc > maxX;
+		boolean outsideZ = zLoc < minZ || zLoc > maxZ;
+
+		if (outsideX && !topology.isXPassable())
+			return false;
+		if (outsideZ && !topology.isZPassable())
+			return false;
+		return outsideX || outsideZ;
 	}
 
 
 	@Override
 	public String toString()
 	{
-		return "radius " + ((radiusX == radiusZ) ? radiusX : radiusX + "x" + radiusZ) + " at X: " + Config.coord.format(x) + " Z: " + Config.coord.format(z) + (shapeRound != null ? (" (shape override: " + Config.ShapeName(shapeRound.booleanValue()) + ")") : "") + (wrapping ? (" (wrapping)") : "");
+		return "radius " + ((radiusX == radiusZ) ? radiusX : radiusX + "x" + radiusZ) + " at X: " + Config.coord.format(x) + " Z: " + Config.coord.format(z) + (shapeRound != null ? (" (shape override: " + Config.ShapeName(shapeRound.booleanValue()) + ")") : "") + (topology != BorderTopology.NORMAL ? (" (topology: " + topology.getConfigName() + ")") : "");
 	}
 
 	// This algorithm of course needs to be fast, since it will be run very frequently
@@ -208,89 +272,123 @@ public class BorderData
 		return insideBorder(coord.x, coord.z, Config.ShapeRound());
 	}
 
-	public Location correctedPosition(Location loc, boolean round, boolean flying, boolean preserveY)
+	public BorderTransform transformPosition(Location loc, boolean round)
+	{
+		return transformCoordinates(loc.getX(), loc.getZ(), round);
+	}
+
+	public BorderTransform transformCoordinates(double xLoc, double zLoc, boolean round)
 	{
 		// if this border has a shape override set, use it
 		if (shapeRound != null)
 			round = shapeRound.booleanValue();
 
-		double xLoc = loc.getX();
-		double zLoc = loc.getZ();
-		double yLoc = loc.getY();
-
-		// square border
 		if (!round)
-		{
-			if (wrapping)
-			{
-				if (xLoc <= minX)
-					xLoc = maxX - Config.KnockBack();
-				else if (xLoc >= maxX)
-					xLoc = minX + Config.KnockBack();
-				if (zLoc <= minZ)
-					zLoc = maxZ - Config.KnockBack();
-				else if (zLoc >= maxZ)
-					zLoc = minZ + Config.KnockBack();
-			}
-			else
-			{
-				if (xLoc <= minX)
-					xLoc = minX + Config.KnockBack();
-				else if (xLoc >= maxX)
-					xLoc = maxX - Config.KnockBack();
-				if (zLoc <= minZ)
-					zLoc = minZ + Config.KnockBack();
-				else if (zLoc >= maxZ)
-					zLoc = maxZ - Config.KnockBack();
-			}
-		}
+			return BorderMath.transformRectangle(xLoc, zLoc, minX, maxX, minZ, maxZ, Config.KnockBack(), topology);
 
-		// round border
+		// Cylinder/globe topology only makes mathematical sense for a rectangular projection.
+		// If a configuration is changed underneath us, degrade safely to the old antipodal round wrap.
+		BorderTopology effectiveTopology = topology;
+		if (effectiveTopology == BorderTopology.CYLINDER || effectiveTopology == BorderTopology.GLOBE)
+			effectiveTopology = BorderTopology.TORUS;
+
+		double dX = xLoc - x;
+		double dZ = zLoc - z;
+		double dU = Math.sqrt(dX * dX + dZ * dZ);
+		double dT = Math.sqrt(dX * dX / radiusXSquared + dZ * dZ / radiusZSquared);
+		if (dU == 0.0D || dT == 0.0D)
+			return new BorderTransform(xLoc, zLoc, false, false, false);
+
+		double f = (1 / dT - Config.KnockBack() / dU);
+		double newX;
+		double newZ;
+		if (effectiveTopology == BorderTopology.TORUS)
+		{
+			newX = x - dX * f;
+			newZ = z - dZ * f;
+		}
 		else
 		{
-			// algorithm originally from: http://stackoverflow.com/questions/300871/best-way-to-find-a-point-on-a-circle-closest-to-a-given-point
-			// modified by Lang Lukas to support elliptical border shape
-
-			//Transform the ellipse to a circle with radius 1 (we need to transform the point the same way)
-			double dX = xLoc - x;
-			double dZ = zLoc - z;
-			double dU = Math.sqrt(dX *dX + dZ * dZ); //distance of the untransformed point from the center
-			double dT = Math.sqrt(dX *dX / radiusXSquared + dZ * dZ / radiusZSquared); //distance of the transformed point from the center
-			double f = (1 / dT - Config.KnockBack() / dU); //"correction" factor for the distances
-			if (wrapping)
-			{
-				xLoc = x - dX * f;
-				zLoc = z - dZ * f;
-			}
-			else
-			{
-				xLoc = x + dX * f;
-				zLoc = z + dZ * f;
-			}
+			newX = x + dX * f;
+			newZ = z + dZ * f;
 		}
+		return new BorderTransform(newX, newZ, true, effectiveTopology == BorderTopology.TORUS, false);
+	}
+
+	public Location correctedPosition(Location loc, boolean round, boolean flying, boolean preserveY, boolean surfaceTravel)
+	{
+		BorderTransform transform = transformPosition(loc, round);
+		double xLoc = transform.getX();
+		double zLoc = transform.getZ();
+		double yLoc = loc.getY();
+		float yaw = BorderMath.transformYaw(loc.getYaw(), transform.crossedPole());
 
 		int ixLoc = Location.locToBlock(xLoc);
 		int izLoc = Location.locToBlock(zLoc);
 
-		// Make sure the chunk we're checking in is actually loaded
+		// Make sure the chunk we're checking in is actually loaded before any safety scan.
 		Chunk tChunk = loc.getWorld().getChunkAt(CoordXZ.blockToChunk(ixLoc), CoordXZ.blockToChunk(izLoc));
 		if (!tChunk.isLoaded())
 			tChunk.load();
 
+		// A player who crossed while standing on terrain must arrive on the surface at
+		// the transformed X/Z. Keeping the source Y can bury them in a hill/building or
+		// leave them inside a block when the two seam columns have different terrain.
+		// Flying players and vehicles deliberately skip this and retain exact altitude.
+		if (surfaceTravel && !flying && !preserveY)
+		{
+			double surfaceY = getSurfaceY(loc.getWorld(), ixLoc, izLoc);
+			if (surfaceY == -1.0D)
+				surfaceY = getSafeY(loc.getWorld(), ixLoc, Location.locToBlock(yLoc), izLoc, false);
+			if (surfaceY == -1.0D)
+				return null;
+			return new Location(loc.getWorld(), xLoc, surfaceY, zLoc, yaw, loc.getPitch());
+		}
+
+		// Wrapped/projected topologies are intended to be continuous seams. Vehicles
+		// preserve exact altitude. Players preserve altitude when it is clear, but if the
+		// same Y at the destination would put their feet/head inside terrain, move only
+		// far enough vertically to the nearest two-block-high safe opening.
+		if (topology != BorderTopology.NORMAL)
+		{
+			if (!preserveY)
+			{
+				int checkY = Location.locToBlock(yLoc);
+				int limTop = (loc.getWorld().getEnvironment() == World.Environment.NETHER) ? 125 : loc.getWorld().getMaxHeight() - 2;
+				if (checkY > limBot && checkY < limTop && !isSafeSpot(loc.getWorld(), ixLoc, checkY, izLoc, true))
+				{
+					double safeY = getSafeY(loc.getWorld(), ixLoc, checkY, izLoc, true);
+					if (safeY == -1.0D)
+						return null;
+					yLoc = safeY;
+				}
+			}
+			return new Location(loc.getWorld(), xLoc, yLoc, zLoc, yaw, loc.getPitch());
+		}
+
 		if (preserveY)
 		{
+			// Vehicle/flying callers intentionally keep their exact altitude, including modded
+			// altitudes above the vanilla build height.
+			if (flying)
+				return new Location(loc.getWorld(), xLoc, yLoc, zLoc, yaw, loc.getPitch());
+
 			double keptY = clampY(loc.getWorld(), yLoc);
 			int keptBlockY = Location.locToBlock(keptY);
-
 			if (isSafeSpot(loc.getWorld(), ixLoc, keptBlockY, izLoc, true))
-				return new Location(loc.getWorld(), Math.floor(xLoc) + 0.5, keptY, Math.floor(zLoc) + 0.5, loc.getYaw(), loc.getPitch());
+				return new Location(loc.getWorld(), Math.floor(xLoc) + 0.5, keptY, Math.floor(zLoc) + 0.5, yaw, loc.getPitch());
 		}
 
 		yLoc = getSafeY(loc.getWorld(), ixLoc, Location.locToBlock(yLoc), izLoc, flying);
 		if (yLoc == -1)
 			return null;
 
-		return new Location(loc.getWorld(), Math.floor(xLoc) + 0.5, yLoc, Math.floor(zLoc) + 0.5, loc.getYaw(), loc.getPitch());
+		return new Location(loc.getWorld(), Math.floor(xLoc) + 0.5, yLoc, Math.floor(zLoc) + 0.5, yaw, loc.getPitch());
+	}
+
+	public Location correctedPosition(Location loc, boolean round, boolean flying, boolean preserveY)
+	{
+		return correctedPosition(loc, round, flying, preserveY, false);
 	}
 	public Location correctedPosition(Location loc, boolean round, boolean flying)
 	{
@@ -342,6 +440,20 @@ public class BorderData
 			return (double) limBot;
 
 		return Y;
+	}
+
+	// Find the highest safe standing position in this column. This is intentionally
+	// used only for grounded seam crossings, so a surface walker stays on terrain
+	// rather than preserving a source Y that may be inside destination terrain.
+	private double getSurfaceY(World world, int X, int Z)
+	{
+		final int limTop = (world.getEnvironment() == World.Environment.NETHER) ? 125 : world.getMaxHeight() - 2;
+		for (int y = limTop; y > limBot; y--)
+		{
+			if (isSafeSpot(world, X, y, Z, false))
+				return (double)y;
+		}
+		return -1.0D;
 	}
 
 	// find closest safe Y position from the starting position

@@ -4,10 +4,10 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.wimbli.WorldBorder</groupId>
-	<artifactId>WorldBorder</artifactId>
-	<version>1.8.1</version>
-	<name>WorldBorder</name>
-	<url>https://github.com/Brettflan/WorldBorder</url>
+	<artifactId>WorldBorder-WDG</artifactId>
+	<version>1.0.5</version>
+	<name>WorldBorder WDG</name>
+	<url>https://github.com/Wargames-Development/WorldBorder</url>
 
 	<issueManagement>
 		<system>GitHub</system>
@@ -16,6 +16,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<worldborder.upstreamVersion>1.8.1</worldborder.upstreamVersion>
 	</properties>
 
 	<repositories>
@@ -43,7 +44,13 @@
 
 	<build>
 		<defaultGoal>clean package</defaultGoal>
-		<finalName>${project.artifactId}</finalName>
+		<finalName>WorldBorder-WDG-${project.version}</finalName>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

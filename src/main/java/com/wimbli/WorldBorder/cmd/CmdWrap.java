@@ -17,9 +17,7 @@ public class CmdWrap extends WBCmd
 		maxParams = 2;
 
 		addCmdExample(nameEmphasized() + "{world} <on|off> - can make border crossings wrap.");
-		helpText = "When border wrapping is enabled for a world, players will be sent around to the opposite edge " +
-			"of the border when they cross it instead of being knocked back. [world] is optional for players and " +
-			"defaults to the world the player is in.";
+		helpText = "Legacy compatibility command. Enabling wrap selects torus topology (both X and Z wrap); disabling it selects normal topology. Use /wb topology for cylinder or globe behaviour. [world] is optional for players and defaults to the world the player is in.";
 	}
 
 	@Override
@@ -56,6 +54,6 @@ public class CmdWrap extends WBCmd
 		border.setWrapping(wrap);
 		Config.setBorder(worldName, border, false);
 
-		sender.sendMessage("Border for world \"" + worldName + "\" is now set to " + (wrap ? "" : "not ") + "wrap around.");
+		sender.sendMessage("Border for world \"" + worldName + "\" is now set to " + (wrap ? "torus wrapping" : "normal blocking") + ".");
 	}
 }

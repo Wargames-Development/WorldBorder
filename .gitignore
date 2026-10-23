@@ -15,3 +15,7 @@ out/
 
 # ===== Misc =====
 *.class
+# ===== Gradle / WorldBorder Client companion =====
+.gradle/
+build/
+eclipse-client/

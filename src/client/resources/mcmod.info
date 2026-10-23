@@ -1,0 +1,14 @@
+[
+  {
+    "modid": "worldborderclient",
+    "name": "WorldBorder Client WDG",
+    "description": "Client-side modern-style renderer for the WDG WorldBorder Bukkit plugin.",
+    "version": "${wdgVersion}",
+    "mcversion": "1.7.10",
+    "url": "",
+    "authorList": ["Wargames Development"],
+    "credits": "Modern-style border presentation adapted for Minecraft 1.7.10.",
+    "requiredMods": [],
+    "dependencies": []
+  }
+]

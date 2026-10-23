@@ -1,0 +1,67 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net/' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.anatawa12.forge:ForgeGradle:1.2-1.1.1'
+    }
+}
+
+apply plugin: 'forge'
+
+if (JavaVersion.current() != JavaVersion.VERSION_1_8) {
+    throw new GradleException(
+        'WorldBorder Client must be built with a Java 8 JDK. Current Gradle JVM: ' +
+        System.getProperty('java.version') + '. Set JAVA_HOME to Java 8 and rerun ./gradlew.'
+    )
+}
+
+def sharedPom = new XmlSlurper().parse(file('pom.xml'))
+def sharedWdgVersion = sharedPom.version.text().trim()
+if (!(sharedWdgVersion ==~ /\d+\.\d+\.\d+(?:[-+][A-Za-z0-9._-]+)?/)) {
+    throw new GradleException('pom.xml must contain a valid shared WDG version (for example 1.0.0).')
+}
+
+version = sharedWdgVersion
+group = 'com.wimbli.worldborderclient'
+archivesBaseName = 'WorldBorder-Client-WDG'
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+minecraft {
+    version = '1.7.10-10.13.4.1614-1.7.10'
+    runDir = 'eclipse-client'
+    replace '@WDG_VERSION@', sharedWdgVersion
+    replaceIn 'com/wimbli/worldborderclient/WorldBorderClientMod.java'
+}
+
+sourceSets {
+    main {
+        java.srcDirs = ['src/client/java']
+        resources.srcDirs = ['src/client/resources']
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+}
+
+processResources {
+    inputs.property 'wdgVersion', sharedWdgVersion
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand([wdgVersion: sharedWdgVersion])
+    }
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
+jar {
+    baseName = 'WorldBorder-Client-WDG'
+    version = sharedWdgVersion
+    destinationDir = file('build/client-libs')
+}

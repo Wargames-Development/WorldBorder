@@ -20,6 +20,9 @@ public class WorldBorder extends JavaPlugin
 		// Load (or create new) config file
 		Config.load(this, false);
 
+		// Optional 1.7.10 client companion uses this channel only for rendering state.
+		BorderClientSync.register(this);
+
 		// our one real command, though it does also have aliases "wb" and "worldborder"
 		getCommand("wborder").setExecutor(wbCommand);
 
@@ -38,6 +41,8 @@ public class WorldBorder extends JavaPlugin
 	public void onDisable()
 	{
 		DynMapFeatures.removeAllBorders();
+		BorderClientSync.unregister(this);
+		BorderProjectileSupport.clear();
 		Config.StopBorderTimer();
 		Config.StoreFillTask();
 		Config.StopFillTask();

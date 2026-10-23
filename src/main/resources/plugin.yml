@@ -1,7 +1,7 @@
 name: WorldBorder
 author: Brettflan
 description: Efficient, feature-rich plugin for limiting the size of your worlds.
-version: 1.8.1
+version: ${project.version}
 main: com.wimbli.WorldBorder.WorldBorder
 softdepend:
   - dynmap
@@ -28,7 +28,8 @@ commands:
            /<command> bypass [player] [on/off] - let player go beyond border.
            /<command> bypasslist - list players with border bypass enabled.
            /<command> knockback <distance> - how far to move the player back.
-           /<command> wrap [world] <on/off> - can make border crossings wrap around.
+           /<command> wrap [world] <on/off> - legacy torus wrapping toggle.
+           /<command> topology [world] <normal|cylinder|torus|globe> - set world topology.
            /<command> whoosh <on/off> - turn knockback effect on or off.
            /<command> getmsg - display border message.
            /<command> setmsg <text> - set border message.
@@ -71,6 +72,7 @@ permissions:
       worldborder.trim: true
       worldborder.whoosh: true
       worldborder.wrap: true
+      worldborder.topology: true
       worldborder.wshape: true
   worldborder.bypass:
     description: Can enable bypass mode to go beyond the border
@@ -143,6 +145,9 @@ permissions:
     default: op
   worldborder.wrap:
     description: Can set border crossings to wrap around to the other side of the world
+    default: op
+  worldborder.topology:
+    description: Can set normal, cylinder, torus, or globe world topology
     default: op
   worldborder.wshape:
     description: Can set an overriding border shape for a single world

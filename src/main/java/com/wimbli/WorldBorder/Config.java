@@ -50,6 +50,19 @@ public class Config
 	private static boolean dynmapEnable = true;
 	private static String dynmapMessage;
 	private static int remountDelayTicks = 0;
+	private static boolean borderVisualsEnabled = false;
+	private static int borderVisualRange = 24;
+	private static int borderVisualSpacing = 4;
+	private static boolean borderVisualEastWest = true;
+	private static boolean borderVisualNorthSouth = true;
+	private static int vehiclePreloadRadiusChunks = 1;
+	private static int vehicleAirWrapClearanceBlocks = 20;
+	private static int vehicleAirWrapScanRadiusBlocks = 12;
+	private static double vehicleAirWrapLookaheadSeconds = 10.0D;
+	private static int vehicleAirWrapLookaheadMaxBlocks = 1024;
+	private static boolean clientBorderRendererEnabled = true;
+	private static int clientBorderRenderDistance = 128;
+	private static boolean trackProjectilesAtBorder = true;
 	private static boolean killPlayer = false;
 	private static boolean denyEnderpearl = false;
 	private static int fillAutosaveFrequency = 30;
@@ -80,22 +93,24 @@ public class Config
 	public static void setBorder(String world, int radiusX, int radiusZ, double x, double z, Boolean shapeRound)
 	{
 		BorderData old = Border(world);
-		boolean oldWrap = (old != null) && old.getWrapping();
-		setBorder(world, new BorderData(x, z, radiusX, radiusZ, shapeRound, oldWrap), true);
+		BorderTopology oldTopology = (old == null) ? BorderTopology.NORMAL : old.getTopology();
+		setBorder(world, new BorderData(x, z, radiusX, radiusZ, shapeRound, oldTopology), true);
 	}
 	public static void setBorder(String world, int radiusX, int radiusZ, double x, double z)
 	{
 		BorderData old = Border(world);
 		Boolean oldShape = (old == null) ? null : old.getShape();
-		boolean oldWrap = (old != null) && old.getWrapping();
-		setBorder(world, new BorderData(x, z, radiusX, radiusZ, oldShape, oldWrap), true);
+		BorderTopology oldTopology = (old == null) ? BorderTopology.NORMAL : old.getTopology();
+		setBorder(world, new BorderData(x, z, radiusX, radiusZ, oldShape, oldTopology), true);
 	}
 
 
 	// backwards-compatible methods from before elliptical/rectangular shapes were supported
 	public static void setBorder(String world, int radius, double x, double z, Boolean shapeRound)
 	{
-		setBorder(world, new BorderData(x, z, radius, radius, shapeRound), true);
+		BorderData old = Border(world);
+		BorderTopology oldTopology = (old == null) ? BorderTopology.NORMAL : old.getTopology();
+		setBorder(world, new BorderData(x, z, radius, radius, shapeRound, oldTopology), true);
 	}
 	public static void setBorder(String world, int radius, double x, double z)
 	{
@@ -106,22 +121,28 @@ public class Config
 	// set border based on corner coordinates
 	public static void setBorderCorners(String world, double x1, double z1, double x2, double z2, Boolean shapeRound, boolean wrap)
 	{
+		setBorderCorners(world, x1, z1, x2, z2, shapeRound, wrap ? BorderTopology.TORUS : BorderTopology.NORMAL);
+	}
+	public static void setBorderCorners(String world, double x1, double z1, double x2, double z2, Boolean shapeRound, BorderTopology topology)
+	{
 		double radiusX = Math.abs(x1 - x2) / 2;
 		double radiusZ = Math.abs(z1 - z2) / 2;
 		double x = ((x1 < x2) ? x1 : x2) + radiusX;
 		double z = ((z1 < z2) ? z1 : z2) + radiusZ;
-		setBorder(world, new BorderData(x, z, (int)Math.round(radiusX), (int)Math.round(radiusZ), shapeRound, wrap), true);
+		setBorder(world, new BorderData(x, z, (int)Math.round(radiusX), (int)Math.round(radiusZ), shapeRound, topology), true);
 	}
 	public static void setBorderCorners(String world, double x1, double z1, double x2, double z2, Boolean shapeRound)
 	{
-		setBorderCorners(world, x1, z1, x2, z2, shapeRound, false);
+		BorderData old = Border(world);
+		BorderTopology oldTopology = (old == null) ? BorderTopology.NORMAL : old.getTopology();
+		setBorderCorners(world, x1, z1, x2, z2, shapeRound, oldTopology);
 	}
 	public static void setBorderCorners(String world, double x1, double z1, double x2, double z2)
 	{
 		BorderData old = Border(world);
 		Boolean oldShape = (old == null) ? null : old.getShape();
-		boolean oldWrap = (old != null) && old.getWrapping();
-		setBorderCorners(world, x1, z1, x2, z2, oldShape, oldWrap);
+		BorderTopology oldTopology = (old == null) ? BorderTopology.NORMAL : old.getTopology();
+		setBorderCorners(world, x1, z1, x2, z2, oldShape, oldTopology);
 	}
 
 
@@ -333,6 +354,71 @@ public class Config
 		return remountDelayTicks;
 	}
 
+	public static boolean BorderVisualsEnabled()
+	{
+		return borderVisualsEnabled;
+	}
+
+	public static int BorderVisualRange()
+	{
+		return borderVisualRange;
+	}
+
+	public static int BorderVisualSpacing()
+	{
+		return borderVisualSpacing;
+	}
+
+	public static boolean BorderVisualEastWest()
+	{
+		return borderVisualEastWest;
+	}
+
+	public static boolean BorderVisualNorthSouth()
+	{
+		return borderVisualNorthSouth;
+	}
+
+	public static int VehiclePreloadRadiusChunks()
+	{
+		return vehiclePreloadRadiusChunks;
+	}
+
+	public static int VehicleAirWrapClearanceBlocks()
+	{
+		return vehicleAirWrapClearanceBlocks;
+	}
+
+	public static int VehicleAirWrapScanRadiusBlocks()
+	{
+		return vehicleAirWrapScanRadiusBlocks;
+	}
+
+	public static double VehicleAirWrapLookaheadSeconds()
+	{
+		return vehicleAirWrapLookaheadSeconds;
+	}
+
+	public static int VehicleAirWrapLookaheadMaxBlocks()
+	{
+		return vehicleAirWrapLookaheadMaxBlocks;
+	}
+
+	public static boolean ClientBorderRendererEnabled()
+	{
+		return clientBorderRendererEnabled;
+	}
+
+	public static int ClientBorderRenderDistance()
+	{
+		return clientBorderRenderDistance;
+	}
+
+	public static boolean TrackProjectilesAtBorder()
+	{
+		return trackProjectilesAtBorder;
+	}
+
 	public static void setFillAutosaveFrequency(int seconds)
 	{
 		fillAutosaveFrequency = seconds;
@@ -538,7 +624,7 @@ public class Config
 	}
 
 
-	private static final int currentCfgVersion = 11;
+	private static final int currentCfgVersion = 15;
 
 	public static void load(WorldBorder master, boolean logIt)
 	{	// load config from file
@@ -558,6 +644,19 @@ public class Config
 		knockBack = cfg.getDouble("knock-back-dist", 3.0);
 		timerTicks = cfg.getInt("timer-delay-ticks", 5);
 		remountDelayTicks = cfg.getInt("remount-delay-ticks", 0);
+		borderVisualsEnabled = cfg.getBoolean("border-particle-fallback", false);
+		borderVisualRange = Math.max(4, cfg.getInt("border-visuals-range", 24));
+		borderVisualSpacing = Math.max(2, cfg.getInt("border-visuals-spacing", 4));
+		borderVisualEastWest = cfg.getBoolean("border-visuals-east-west", true);
+		borderVisualNorthSouth = cfg.getBoolean("border-visuals-north-south", true);
+		vehiclePreloadRadiusChunks = Math.max(0, Math.min(2, cfg.getInt("vehicle-preload-radius-chunks", 1)));
+		vehicleAirWrapClearanceBlocks = Math.max(4, Math.min(64, cfg.getInt("vehicle-air-wrap-clearance-blocks", 20)));
+		vehicleAirWrapScanRadiusBlocks = Math.max(0, Math.min(24, cfg.getInt("vehicle-air-wrap-scan-radius-blocks", 12)));
+		vehicleAirWrapLookaheadSeconds = Math.max(0.0D, Math.min(30.0D, cfg.getDouble("vehicle-air-wrap-lookahead-seconds", 10.0D)));
+		vehicleAirWrapLookaheadMaxBlocks = Math.max(0, Math.min(4096, cfg.getInt("vehicle-air-wrap-lookahead-max-blocks", 1024)));
+		clientBorderRendererEnabled = cfg.getBoolean("client-border-renderer-enabled", true);
+		clientBorderRenderDistance = Math.max(16, Math.min(512, cfg.getInt("client-border-render-distance", 128)));
+		trackProjectilesAtBorder = cfg.getBoolean("track-projectiles-at-border", true);
 		dynmapEnable = cfg.getBoolean("dynmap-border-enabled", true);
 		dynmapMessage = cfg.getString("dynmap-border-message", "The border of the world.");
 		logConfig("Using " + (ShapeName()) + " border, knockback of " + knockBack + " blocks, and timer delay of " + timerTicks + ".");
@@ -617,8 +716,12 @@ public class Config
 				}
 
 				Boolean overrideShape = (Boolean) bord.get("shape-round");
-				boolean wrap = (boolean) bord.getBoolean("wrapping", false);
-				BorderData border = new BorderData(bord.getDouble("x", 0), bord.getDouble("z", 0), bord.getInt("radiusX", 0), bord.getInt("radiusZ", 0), overrideShape, wrap);
+				BorderTopology topology = null;
+				if (bord.isSet("topology"))
+					topology = BorderTopology.fromString(bord.getString("topology"));
+				if (topology == null)
+					topology = bord.getBoolean("wrapping", false) ? BorderTopology.TORUS : BorderTopology.NORMAL;
+				BorderData border = new BorderData(bord.getDouble("x", 0), bord.getDouble("z", 0), bord.getInt("radiusX", 0), bord.getInt("radiusZ", 0), overrideShape, topology);
 				borders.put(worldName, border);
 				logConfig(BorderDescription(worldName));
 			}
@@ -665,6 +768,20 @@ public class Config
 		cfg.set("knock-back-dist", knockBack);
 		cfg.set("timer-delay-ticks", timerTicks);
 		cfg.set("remount-delay-ticks", remountDelayTicks);
+		cfg.set("border-particle-fallback", borderVisualsEnabled);
+		cfg.set("border-visuals-enabled", null);
+		cfg.set("border-visuals-range", borderVisualRange);
+		cfg.set("border-visuals-spacing", borderVisualSpacing);
+		cfg.set("border-visuals-east-west", borderVisualEastWest);
+		cfg.set("border-visuals-north-south", borderVisualNorthSouth);
+		cfg.set("vehicle-preload-radius-chunks", vehiclePreloadRadiusChunks);
+		cfg.set("vehicle-air-wrap-clearance-blocks", vehicleAirWrapClearanceBlocks);
+		cfg.set("vehicle-air-wrap-scan-radius-blocks", vehicleAirWrapScanRadiusBlocks);
+		cfg.set("vehicle-air-wrap-lookahead-seconds", vehicleAirWrapLookaheadSeconds);
+		cfg.set("vehicle-air-wrap-lookahead-max-blocks", vehicleAirWrapLookaheadMaxBlocks);
+		cfg.set("client-border-renderer-enabled", clientBorderRendererEnabled);
+		cfg.set("client-border-render-distance", clientBorderRenderDistance);
+		cfg.set("track-projectiles-at-border", trackProjectilesAtBorder);
 		cfg.set("dynmap-border-enabled", dynmapEnable);
 		cfg.set("dynmap-border-message", dynmapMessage);
 		cfg.set("player-killed-bad-spawn", killPlayer);
@@ -684,7 +801,9 @@ public class Config
 			cfg.set("worlds." + name + ".z", bord.getZ());
 			cfg.set("worlds." + name + ".radiusX", bord.getRadiusX());
 			cfg.set("worlds." + name + ".radiusZ", bord.getRadiusZ());
-			cfg.set("worlds." + name + ".wrapping", bord.getWrapping());
+			cfg.set("worlds." + name + ".topology", bord.getTopology().getConfigName());
+			// Keep the old key for downgrade compatibility. Only TORUS has the exact old semantics.
+			cfg.set("worlds." + name + ".wrapping", bord.getTopology() == BorderTopology.TORUS);
 
 			if (bord.getShape() != null)
 				cfg.set("worlds." + name + ".shape-round", bord.getShape());
